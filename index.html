@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Validador de CPF e Placa</title>
+  <style>
+    :root{
+      --bg: #0f1220;
+      --card: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.18);
+      --text: #e6e6f0;
+      --muted: #b8bfd6;
+      --primary: #7c3aed;
+      --primary-500: #9f67ff;
+      --success: #22c55e;
+      --error: #ef4444;
+      --shadow: 0 20px 40px rgba(0,0,0,0.35);
+      --glass: blur(12px) saturate(120%);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 5% 10%, rgba(124, 58, 237, 0.15), transparent 60%),
+        radial-gradient(900px 500px at 95% 80%, rgba(34, 197, 94, 0.12), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+      display:flex; align-items:center; justify-content:center;
+      padding:40px 16px;
+    }
+    .card{
+      width: min(640px, 100%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
+      overflow: hidden;
+    }
+
+    /* ===== Cabeçalho (garantir visibilidade) ===== */
+    .card__header{
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; gap:12px;
+      background: transparent;
+    }
+    .logo{
+      width:36px; height:36px; border-radius:10px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-500));
+      box-shadow: 0 8px 16px rgba(124,58,237,0.35);
+      display:grid; place-items:center;
+      color:#fff; font-weight:700; font-size:14px; letter-spacing:0.4px;
+      flex:0 0 36px;
+    }
+    .card__title{
+      margin:0;
+      font-size:clamp(20px, 2.6vw, 24px);
+      line-height:1.2;
+      color:var(--text);
+    }
+    .card__subtitle{
+      margin:4px 0 0 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .card__body{ padding: 24px 28px; }
+
+    /* ===== Campos / inputs ===== */
+    .field{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+    label{ font-size:14px; color:var(--muted); }
+    .input-wrap{ position:relative; }
+    input[type="text"]{
+      width:100%; padding:14px 44px 14px 44px;
+      border-radius:12px; border:1px solid var(--border);
+      outline:none; background: rgba(255,255,255,0.06);
+      color:var(--text); font-size:16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      text-transform: uppercase; /* placa aparece em maiúsculas; CPF não é afetado */
+    }
+    input::placeholder{color:#9aa3bd}
+    input:focus{ border-color: rgba(124,58,237,0.6); box-shadow: 0 0 0 4px rgba(124,58,237,0.15); }
+    .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:22px; height:22px; color:#c5cbe0; }
+    .status{ position:absolute; right:12px; top:50%; transform:translateY(-50%); width:22px; height:22px; display:none; }
+    .status--show{ display:block; }
+    .status.success{ color:var(--success); }
+    .status.error{ color:var(--error); }
+
+    .actions{ display:flex; gap:12px; margin-top:4px; flex-wrap:wrap; }
+    .btn{ appearance:none; border:none; padding:12px 16px; border-radius:12px; font-weight:600; cursor:pointer; transition: transform .06s, box-shadow .2s, background .2s; }
+    .btn:active{ transform: translateY(1px); }
+    .btn-primary{ background: linear-gradient(135deg, var(--primary), var(--primary-500)); color:white; box-shadow: 0 10px 18px rgba(124,58,237,0.35); }
+    .btn-primary:hover{ box-shadow: 0 14px 24px rgba(124,58,237,0.45); }
+    .btn-ghost{ background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.06); }
+
+    .result{
+      margin-top:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+      background: rgba(255,255,255,0.05); display:flex; align-items:center; gap:10px; min-height:48px;
+    }
+    .result__icon{ width:22px;height:22px; flex:0 0 22px; }
+    .result--success{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); }
+    .result--error{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); }
+
+    @media (max-width: 420px){
+      .card__body{ padding: 20px; }
+      .card__header{ padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="region" aria-labelledby="titulo">
+    <header class="card__header">
+      <div class="logo" aria-hidden="true">VAL</div>
+      <div>
+        <!-- Título com ID para aria-labelledby -->
+        <h1 class="card__title" id="titulo">Validador de CPF e Placa - CDD Araçatuba</h1>
+        <p class="card__subtitle">André Moura 99771323</p>
+      </div>
+    </header>
+
+    <section class="card__body">
+      <!-- ===== CPF ===== -->
+      <form id="cpfForm" novalidate>
+        <div class="field">
+          <label for="cpf">CPF</label>
+          <div class="input-wrap">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0H4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <input type="text" id="cpf" name="cpf" inputmode="numeric"
+                   autocomplete="off" placeholder="Digite o CPF"
+                   aria-label="CPF" />
+
+            <svg class="status" id="statusIconCpf" viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="btnValidarCpf">Validar CPF</button>
+          <button type="button" class="btn btn-ghost" id="btnLimparCpf">Limpar</button>
+        </div>
+      </form>
+
+      <div class="result" id="resultadoCpf" aria-live="polite">
+        <svg class="result__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path id="resIconPathCpf" d="" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div id="resTextoCpf">Aguardando validação…</div>
+      </div>
+
+      <!-- ===== Placa ===== -->
+      <form id="placaForm" novalidate style="margin-top:24px">
+        <div class="field">
+          <label for="placa">Placa do veículo</label>
+          <div class="input-wrap">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2zm2 3h12m-11 5h2m7 0h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <input type="text" id="placa" name="placa" inputmode="text"
+                   autocomplete="off" placeholder="Digite a placa"
+                   aria-label="Placa do veículo" />
+
+            <svg class="status" id="statusIconPlaca" viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="btnValidarPlaca">Validar Placa</button>
+          <button type="button" class="btn btn-ghost" id="btnLimparPlaca">Limpar</button>
+        </div>
+      </form>
+
+      <div class="result" id="resultadoPlaca" aria-live="polite">
+        <svg class="result__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path id="resIconPathPlaca" d="" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div id="resTextoPlaca">Aguardando validação…</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* ===== UI helpers ===== */
+    function setStatusIcon(el, tipo){
+      if(!el) return;
+      el.classList.add('status--show');
+      el.classList.remove('success','error');
+      el.innerHTML = '';
+      if(tipo === 'success'){
+        el.classList.add('success');
+        el.innerHTML = `
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+        `;
+      }else if(tipo === 'error'){
+        el.classList.add('error');
+        el.innerHTML = `
+          <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+        `;
+      }else{
+        el.classList.remove('status--show');
+      }
+    }
+    function setResultado(box, iconPathEl, valido, texto){
+      if(!box || !iconPathEl) return;
+      box.classList.remove('result--success','result--error');
+      if(valido){
+        box.classList.add('result--success');
+        iconPathEl.setAttribute('d','M5 13l4 4L19 7'); // check
+      }else{
+        box.classList.add('result--error');
+        iconPathEl.setAttribute('d','M6 6l12 12M18 6L6 18'); // X
+      }
+      box.querySelector('div').textContent = texto;
+    }
+
+    /* ===== CPF ===== */
+    const cpfInput = document.getElementById('cpf');
+    const statusIconCpf = document.getElementById('statusIconCpf');
+    const resultadoCpf = document.getElementById('resultadoCpf');
+    const resIconPathCpf = document.getElementById('resIconPathCpf');
+    const btnValidarCpf = document.getElementById('btnValidarCpf');
+    const btnLimparCpf = document.getElementById('btnLimparCpf');
+
+    function formatarCPF(nums){
+      if(nums.length !== 11) return nums;
+      return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    function ehSequenciaRepetida(nums){ return /^(\d)\1{10}$/.test(nums); }
+    function calcularDigito(nums, fatorInicial){
+      let soma = 0;
+      for(let i=0; i<nums.length; i++){
+        soma += parseInt(nums[i],10) * (fatorInicial - i);
+      }
+      const resto = soma % 11;
+      return resto < 2 ? 0 : 11 - resto;
+    }
+    function validarCPF(valor){
+      const nums = valor.replace(/\D/g,'');
+      if(nums.length !== 11) return {valido:false, motivo:'CPF deve ter 11 dígitos.'};
+      if(ehSequenciaRepetida(nums)) return {valido:false, motivo:'CPF inválido: sequência repetida.'};
+      const base = nums.slice(0,9);
+      const dv1 = calcularDigito(base, 10);
+      const dv2 = calcularDigito(base + dv1, 11);
+      const ok = (parseInt(nums[9],10) === dv1) && (parseInt(nums[10],10) === dv2);
+      return {valido: ok, motivo: ok ? 'CPF válido.' : 'Dígitos verificadores não conferem.', nums};
+    }
+
+    cpfInput.addEventListener('input', ()=>{
+      const nums = cpfInput.value.replace(/\D/g,'');
+      if(nums.length === 0){
+        setStatusIcon(statusIconCpf, null);
+        setResultado(resultadoCpf, resIconPathCpf, false, 'Aguardando validação…');
+      } else if(nums.length < 11){
+        setStatusIcon(statusIconCpf, 'error');
+        setResultado(resultadoCpf, resIconPathCpf, false, 'Digite todos os 11 dígitos.');
+      } else {
+        setStatusIcon(statusIconCpf, null);
+      }
+    });
+    cpfInput.addEventListener('blur', ()=>{
+      const nums = cpfInput.value.replace(/\D/g,'');
+      if(nums.length === 11) cpfInput.value = formatarCPF(nums);
+    });
+    btnValidarCpf.addEventListener('click', ()=>{
+      const res = validarCPF(cpfInput.value);
+      if(res.nums && res.nums.length === 11){
+        cpfInput.value = formatarCPF(res.nums);
+      }
+      setStatusIcon(statusIconCpf, res.valido ? 'success' : 'error');
+      setResultado(resultadoCpf, resIconPathCpf, res.valido, res.motivo);
+    });
+    btnLimparCpf.addEventListener('click', ()=>{
+      cpfInput.value = '';
+      setStatusIcon(statusIconCpf, null);
+      setResultado(resultadoCpf, resIconPathCpf, false, 'Aguardando validação…');
+      cpfInput.focus();
+    });
+    document.getElementById('cpfForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      btnValidarCpf.click();
+    });
+
+    /* ===== Placa ===== */
+    const placaInput = document.getElementById('placa');
+    const statusIconPlaca = document.getElementById('statusIconPlaca');
+    const resultadoPlaca = document.getElementById('resultadoPlaca');
+    const resIconPathPlaca = document.getElementById('resIconPathPlaca');
+    const btnValidarPlaca = document.getElementById('btnValidarPlaca');
+    const btnLimparPlaca = document.getElementById('btnLimparPlaca');
+
+    const REG_ANTIGA = /^[A-Z]{3}\d{4}$/;          // ABC1234
+    const REG_MERCOSUL = /^[A-Z]{3}\d[A-Z]\d{2}$/; // ABC1D23
+
+    function limparPlaca(valor){
+      return valor.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+    }
+    function formatarPlaca(valorLimpo){
+      if(REG_ANTIGA.test(valorLimpo)){
+        return valorLimpo.replace(/^([A-Z]{3})(\d{4})$/, '$1-$2'); // ABC-1234
+      }
+      return valorLimpo; // Mercosul fica sem hífen
+    }
+    function validarPlaca(valor){
+      const v = limparPlaca(valor);
+      if(v.length !== 7) return {valido:false, motivo:'Placa deve ter 7 caracteres.', limpo:v};
+      if(REG_ANTIGA.test(v)) return {valido:true, motivo:'Placa válida (padrão antigo).', limpo:v, tipo:'antiga'};
+      if(REG_MERCOSUL.test(v)) return {valido:true, motivo:'Placa válida (padrão Mercosul).', limpo:v, tipo:'mercosul'};
+      return {valido:false, motivo:'Formato inválido. Use ABC-1234 (antigo) ou ABC1D23 (Mercosul).', limpo:v};
+    }
+
+    placaInput.addEventListener('input', ()=>{
+      const v = limparPlaca(placaInput.value);
+      if(v.length === 0){
+        setStatusIcon(statusIconPlaca, null);
+        setResultado(resultadoPlaca, resIconPathPlaca, false, 'Aguardando validação…');
+      } else if(v.length < 7){
+        setStatusIcon(statusIconPlaca, 'error');
+        setResultado(resultadoPlaca, resIconPathPlaca, false, 'Digite 7 caracteres.');
+      } else {
+        setStatusIcon(statusIconPlaca, null);
+      }
+    });
+    placaInput.addEventListener('blur', ()=>{
+      const v = limparPlaca(placaInput.value);
+      if(v.length === 7){
+        placaInput.value = formatarPlaca(v);
+      } else {
+        placaInput.value = v;
+      }
+    });
+    btnValidarPlaca.addEventListener('click', ()=>{
+      const res = validarPlaca(placaInput.value);
+      placaInput.value = formatarPlaca(res.limpo || limparPlaca(placaInput.value));
+      setStatusIcon(statusIconPlaca, res.valido ? 'success' : 'error');
+      setResultado(resultadoPlaca, resIconPathPlaca, res.valido, res.motivo);
+    });
+    btnLimparPlaca.addEventListener('click', ()=>{
+      placaInput.value = '';
+      setStatusIcon(statusIconPlaca, null);
+      setResultado(resultadoPlaca, resIconPathPlaca, false, 'Aguardando validação…');
+      placaInput.focus();
+    });
+    document.getElementById('placaForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      btnValidarPlaca.click();
+    });
+  </script>
+</body>
+</html>
